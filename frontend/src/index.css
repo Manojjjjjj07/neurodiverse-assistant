@@ -1,0 +1,239 @@
+/**
+ * NeuroBridge - Main CSS with TailwindCSS v4
+ * 
+ * Color palette derived from relaxing_color_palette.png:
+ * - Sage greens: #8B9A82, #A7B89C
+ * - Warm beiges: #D4C5B9, #E8E2D9
+ * - Muted terracotta: #C4A484, #D4B896
+ * - Soft cream: #F5F1EB
+ * - Soft charcoal: #4A4A4A
+ */
+
+@import 'tailwindcss';
+
+/* Custom theme using TailwindCSS v4 theme syntax */
+@theme {
+  /* Relaxing color palette */
+  --color-sage-50: #f4f6f3;
+  --color-sage-100: #e4e9e1;
+  --color-sage-200: #c9d3c4;
+  --color-sage-300: #a7b89c;
+  --color-sage-400: #8b9a82;
+  --color-sage-500: #6b7d62;
+  --color-sage-600: #54634d;
+  --color-sage-700: #434f3e;
+  --color-sage-800: #384034;
+  --color-sage-900: #2f352c;
+  
+  --color-cream-50: #fdfcfa;
+  --color-cream-100: #f5f1eb;
+  --color-cream-200: #e8e2d9;
+  --color-cream-300: #d4c5b9;
+  --color-cream-400: #c4b09d;
+  --color-cream-500: #a89178;
+  --color-cream-600: #8a7460;
+  --color-cream-700: #6d5c4e;
+  --color-cream-800: #5a4d43;
+  --color-cream-900: #4d423b;
+  
+  --color-terracotta-50: #faf7f4;
+  --color-terracotta-100: #f2ebe3;
+  --color-terracotta-200: #e4d5c5;
+  --color-terracotta-300: #d4b896;
+  --color-terracotta-400: #c4a484;
+  --color-terracotta-500: #b08c66;
+  --color-terracotta-600: #9a7454;
+  --color-terracotta-700: #7d5d45;
+  --color-terracotta-800: #674d3c;
+  --color-terracotta-900: #564135;
+  
+  /* Semantic colors for emotions (calm versions) */
+  --color-emotion-neutral: #8b9a82;
+  --color-emotion-happy: #d4b896;
+  --color-emotion-sad: #9cb3c9;
+  --color-emotion-angry: #c9a49a;
+  --color-emotion-fear: #b8a7c9;
+  --color-emotion-surprise: #a7c9b8;
+  --color-emotion-disgust: #9ac9b8;
+  --color-emotion-contempt: #b8b8c9;
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+  
+  /* Animation timings */
+  --transition-calm: 0.4s ease-out;
+  --transition-quick: 0.2s ease-out;
+  
+  /* Spacing for HUD elements */
+  --spacing-hud-padding: 1.5rem;
+  --spacing-hud-margin: 1rem;
+  
+  /* Z-index layers */
+  --z-hud: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+}
+
+/* Base styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-cream-100 text-cream-900 font-sans antialiased;
+  }
+  
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Card component with calm aesthetic */
+  .card {
+    @apply bg-cream-50 rounded-2xl shadow-sm border border-cream-200;
+    @apply p-6 transition-shadow duration-300;
+  }
+  
+  .card:hover {
+    @apply shadow-md;
+  }
+  
+  /* Button variants */
+  .btn {
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-sage-400 text-white hover:bg-sage-500;
+    @apply focus:ring-sage-400;
+  }
+  
+  .btn-secondary {
+    @apply bg-cream-200 text-cream-800 hover:bg-cream-300;
+    @apply focus:ring-cream-400;
+  }
+  
+  .btn-danger {
+    @apply bg-terracotta-400 text-white hover:bg-terracotta-500;
+    @apply focus:ring-terracotta-400;
+  }
+  
+  /* Kill Switch button - prominent but not alarming */
+  .kill-switch {
+    @apply px-6 py-3 rounded-full font-semibold;
+    @apply bg-terracotta-400 text-white;
+    @apply hover:bg-terracotta-500 active:bg-terracotta-600;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-4 focus:ring-terracotta-300;
+  }
+  
+  /* Status indicators */
+  .status-dot {
+    @apply w-3 h-3 rounded-full;
+  }
+  
+  .status-dot-active {
+    @apply bg-sage-400 animate-pulse;
+  }
+  
+  .status-dot-inactive {
+    @apply bg-cream-300;
+  }
+  
+  .status-dot-warning {
+    @apply bg-terracotta-400;
+  }
+  
+  /* Input fields */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl;
+    @apply bg-cream-50 border border-cream-300;
+    @apply text-cream-900 placeholder-cream-500;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+  
+  /* Ambient HUD overlay */
+  .hud-overlay {
+    @apply fixed inset-0 pointer-events-none;
+    @apply transition-all duration-1000 ease-out;
+    z-index: var(--z-hud);
+  }
+  
+  /* Topic anchor chip */
+  .topic-chip {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full;
+    @apply bg-sage-100 text-sage-700 text-sm font-medium;
+    @apply border border-sage-200;
+  }
+  
+  /* Emotion indicator bar */
+  .emotion-bar {
+    @apply h-2 rounded-full transition-all duration-500 ease-out;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-cream-50/80 backdrop-blur-md;
+    @apply border border-cream-200/50;
+  }
+  
+  /* Calm shadow for floating elements */
+  .shadow-calm {
+    box-shadow: 
+      0 4px 6px -1px rgba(107, 125, 98, 0.1),
+      0 2px 4px -2px rgba(107, 125, 98, 0.1);
+  }
+  
+  /* Text gradient for headings */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-sage-500 to-terracotta-500;
+  }
+  
+  /* Smooth fade animation */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Gentle pulse for active states */
+  .animate-gentle-pulse {
+    animation: gentlePulse 3s ease-in-out infinite;
+  }
+  
+  @keyframes gentlePulse {
+    0%, 100% {
+      opacity: 0.9;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
