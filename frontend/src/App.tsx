@@ -8,7 +8,7 @@
  * No raw audio/video data ever leaves your device.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import './index.css';
 import { useMediaStream, useInference } from './hooks';
 import { useSettingsStore, useSessionStore } from './stores';
@@ -27,12 +27,7 @@ function App() {
     // Session
     const currentSession = useSessionStore((s) => s.currentSession);
 
-    // Inference hook
-    const { isLoading, error: inferenceError, modelStatus, processVideoFrame, processAudioChunk } = useInference({
-        useMockData: demoMode,
-    });
-
-    // Media stream hook
+    // Media stream hook (must be first to get videoRef)
     const {
         state: mediaState,
         start: startMedia,
@@ -41,24 +36,16 @@ function App() {
         videoRef,
     } = useMediaStream({
         enableVideo: true,
-        enableAudio: true,
-        onVideoFrame: processVideoFrame,
-        onAudioChunk: processAudioChunk,
+        enableAudio: false, // Audio disabled - using vision only
     });
 
-    // Demo mode auto-generation
-    useEffect(() => {
-        if (demoMode && !mediaState.isActive) {
-            // Generate mock data periodically for demo
-            const interval = setInterval(() => {
-                // Trigger mock processing
-                processVideoFrame(new ImageData(1, 1));
-                processAudioChunk(new Float32Array(1024), 16000);
-            }, 2000);
+    // Inference hook - calls backend API every 10 seconds
+    const { isLoading, error: inferenceError, modelStatus } = useInference({
+        useMockData: demoMode,
+        videoRef: videoRef,
+    });
 
-            return () => clearInterval(interval);
-        }
-    }, [demoMode, mediaState.isActive, processVideoFrame, processAudioChunk]);
+    // Demo mode is now handled internally by useInference hook
 
     // Handle start/stop toggle
     const handleToggle = useCallback(async () => {
