@@ -11,20 +11,25 @@
 import { useState, useCallback } from 'react';
 import './index.css';
 import { useMediaStream, useInference } from './hooks';
+import { useSessionTracking } from './hooks/useSessionTracking';
 import { useSettingsStore, useSessionStore } from './stores';
 import { AmbientHUD, EmotionIndicator, TopicAnchor } from './components/hud';
+import { SessionHistory } from './components/hud/SessionHistory';
+import { LastSessionDisplay } from './components/hud/LastSessionDisplay';
 import { KillSwitch, HardwareStatus, VideoPreview } from './components/controls';
+import { SaveSessionDialog } from './components/dialogs/SaveSessionDialog';
 
 function App() {
     const [showVideoPreview, setShowVideoPreview] = useState(true);
     const [demoMode, setDemoMode] = useState(true); // Start in demo mode
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
 
     // Settings
     const hudIntensity = useSettingsStore((s) => s.hudIntensity);
     const setHudIntensity = useSettingsStore((s) => s.setHudIntensity);
     const enableTopicAnchoring = useSettingsStore((s) => s.enableTopicAnchoring);
 
-    // Session
+    // Session store
     const currentSession = useSessionStore((s) => s.currentSession);
 
     // Media stream hook (must be first to get videoRef)
@@ -32,7 +37,6 @@ function App() {
         state: mediaState,
         start: startMedia,
         stop: stopMedia,
-        killSwitch,
         videoRef,
     } = useMediaStream({
         enableVideo: true,
@@ -45,23 +49,46 @@ function App() {
         videoRef: videoRef,
     });
 
-    // Demo mode is now handled internally by useInference hook
+    // Session tracking hook
+    const {
+        currentStats,
+        lastSession,
+        isLoading: isSavingSession,
+        startSession,
+        endSession,
+        saveSession,
+        discardSession,
+    } = useSessionTracking();
 
-    // Handle start/stop toggle
-    const handleToggle = useCallback(async () => {
-        if (mediaState.isActive) {
-            stopMedia();
-        } else {
-            setDemoMode(false); // Exit demo mode when starting real media
-            await startMedia();
+    // Handle start toggle - start media and session tracking
+    const handleStart = useCallback(async () => {
+        setDemoMode(false);
+        startSession();
+        await startMedia();
+    }, [startMedia, startSession]);
+
+    // Handle stop - end session and show save dialog
+    const handleStop = useCallback(() => {
+        stopMedia();
+        const stats = endSession();
+        if (stats && stats.totalReadings > 0) {
+            setShowSaveDialog(true);
         }
-    }, [mediaState.isActive, startMedia, stopMedia]);
+    }, [stopMedia, endSession]);
 
-    // Handle kill switch
-    const handleKill = useCallback(() => {
-        killSwitch();
-        setDemoMode(true); // Return to demo mode
-    }, [killSwitch]);
+    // Handle save session
+    const handleSaveSession = useCallback(async (title: string) => {
+        await saveSession(title);
+        setShowSaveDialog(false);
+        setDemoMode(true);
+    }, [saveSession]);
+
+    // Handle discard session
+    const handleDiscardSession = useCallback(() => {
+        discardSession();
+        setShowSaveDialog(false);
+        setDemoMode(true);
+    }, [discardSession]);
 
     return (
         <div className="min-h-screen bg-cream-100">
@@ -82,12 +109,36 @@ function App() {
                             </p>
                         </div>
 
-                        {/* Demo Mode Badge */}
-                        {demoMode && (
-                            <div className="px-4 py-2 rounded-full bg-sage-100 border border-sage-300 text-sage-700 text-sm font-medium">
-                                🎭 Demo Mode
-                            </div>
-                        )}
+                        {/* Demo Mode Toggle Switch */}
+                        <div className="flex items-center gap-3">
+                            <span className={`text-sm font-medium ${!demoMode ? 'text-sage-700' : 'text-cream-500'}`}>
+                                Live
+                            </span>
+                            <button
+                                onClick={() => {
+                                    if (demoMode) {
+                                        setDemoMode(false);
+                                    } else {
+                                        if (mediaState.isActive) {
+                                            stopMedia();
+                                        }
+                                        setDemoMode(true);
+                                    }
+                                }}
+                                className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${demoMode ? 'bg-sage-400' : 'bg-cream-300'
+                                    }`}
+                                role="switch"
+                                aria-checked={demoMode}
+                            >
+                                <span
+                                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${demoMode ? 'translate-x-7' : 'translate-x-0'
+                                        }`}
+                                />
+                            </button>
+                            <span className={`text-sm font-medium ${demoMode ? 'text-sage-700' : 'text-cream-500'}`}>
+                                Demo
+                            </span>
+                        </div>
                     </div>
                 </header>
 
@@ -134,7 +185,7 @@ function App() {
                             {/* Start/Stop Button */}
                             <div className="mt-4 flex justify-center">
                                 <KillSwitch
-                                    onKill={mediaState.isActive ? handleKill : handleToggle}
+                                    onKill={mediaState.isActive ? handleStop : handleStart}
                                     isActive={mediaState.isActive}
                                 />
                             </div>
@@ -163,7 +214,12 @@ function App() {
 
                     {/* Center Column - Emotion Display */}
                     <div className="lg:col-span-1 space-y-6">
-                        <EmotionIndicator />
+                        {/* Show last session when camera is off, otherwise live indicator */}
+                        {!mediaState.isActive && lastSession ? (
+                            <LastSessionDisplay session={lastSession} />
+                        ) : (
+                            <EmotionIndicator />
+                        )}
 
                         {/* Inference Status */}
                         {isLoading && (
@@ -247,6 +303,11 @@ function App() {
                     </div>
                 </div>
 
+                {/* Session Collection - Full Width */}
+                <div className="mt-6">
+                    <SessionHistory maxItems={10} />
+                </div>
+
                 {/* Footer */}
                 <footer className="mt-12 pt-6 border-t border-cream-200">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -276,6 +337,17 @@ function App() {
                     </div>
                 </footer>
             </div>
+
+            {/* Save Session Dialog */}
+            {showSaveDialog && currentStats && (
+                <SaveSessionDialog
+                    isOpen={showSaveDialog}
+                    stats={currentStats}
+                    onSave={handleSaveSession}
+                    onDiscard={handleDiscardSession}
+                    isLoading={isSavingSession}
+                />
+            )}
         </div>
     );
 }

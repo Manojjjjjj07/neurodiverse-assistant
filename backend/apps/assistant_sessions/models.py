@@ -157,3 +157,67 @@ class EmotionSnapshot(models.Model):
         ordering = ['window_start']
         verbose_name = 'Emotion Snapshot'
         verbose_name_plural = 'Emotion Snapshots'
+
+
+class EmotionSession(models.Model):
+    """
+    Complete emotion analysis session with aggregated stats.
+    
+    Stored when user opts to save a session after stopping the camera.
+    Contains session-level statistics, not moment-by-moment data.
+    """
+    
+    # Optional user association (for anonymous usage support)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='emotion_sessions',
+        null=True,
+        blank=True
+    )
+    
+    # Session timing
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField()
+    duration_seconds = models.PositiveIntegerField()
+    
+    # Dominant emotion (most frequent during session)
+    dominant_emotion = models.CharField(max_length=50)
+    dominant_emotion_percentage = models.FloatField(
+        help_text='Percentage of time this emotion was dominant'
+    )
+    
+    # Emotion breakdown (percentage of time in each emotion)
+    emotion_breakdown = models.JSONField(
+        default=dict,
+        help_text='{"happiness": 35.5, "neutral": 40.2, ...}'
+    )
+    
+    # Analysis stats
+    total_readings = models.PositiveIntegerField(
+        default=0,
+        help_text='Number of emotion readings captured'
+    )
+    average_confidence = models.FloatField(
+        default=0.0,
+        help_text='Average confidence across all readings'
+    )
+    
+    # Session metadata
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Optional user-provided session title'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-ended_at']
+        verbose_name = 'Emotion Session'
+        verbose_name_plural = 'Emotion Sessions'
+    
+    def __str__(self):
+        return f"EmotionSession {self.id} - {self.dominant_emotion} ({self.duration_seconds}s)"
+

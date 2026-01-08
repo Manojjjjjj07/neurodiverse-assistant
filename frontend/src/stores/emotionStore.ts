@@ -111,9 +111,9 @@ export const createNeutralEmotionVector = (): EmotionVector => ({
  * Smoothing factor for Exponential Moving Average
  * Lower = smoother but slower response
  * Higher = more responsive but jittery
- * 0.08 means ~4 seconds to reach 95% of new value (very stable)
+ * 0.3 means ~300ms to reach 95% of new value (quick response)
  */
-const SMOOTHING_ALPHA = 0.08;
+const SMOOTHING_ALPHA = 0.3;
 
 /**
  * Apply exponential moving average smoothing
